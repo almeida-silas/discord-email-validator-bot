@@ -5,6 +5,9 @@ const config = new Config();
 
 export type RoleName = 'guest' | 'verified';
 
+const validateEmail = 'Para validar seu email, clique no link:';
+const validateEmailMessage = `Olá, seja bem-vindo ao servidor! ${validateEmail} ${config.oauth2Link}`;
+
 export const client = new Discord.Client({ 
   intents: [
     'GuildModeration', 
@@ -24,14 +27,37 @@ client.on('messageCreate', async (message) => {
   if (message.content === '&ping') {
     message.reply('Pong!');
   }
-  if(message.channelId === config.waitingRoomChannelId) {
-    if (message.content === '&validar') {
-      message.reply('Para validar seu email, clique no link: ' + config.oauth2Link);
-    }
+  if (message.content === '&validar') {
+    message.reply(validateEmailMessage);
   }
 });
 
 client.on("ready", async (c) => {
+  c.channels.fetch(config.waitingRoomChannelId).then(channel => {
+    let hasWelcomeMessageFromBot = false;
+    if (channel && channel.isSendable()) {
+      channel.messages.fetch().then(messages => {
+        if (messages.size === 0) {
+          channel.send(validateEmailMessage);
+          return;
+        }
+        messages.forEach(message => {
+          if(message.author.displayName === client.user?.username && message.content.includes('validar seu email')) {
+            console.log('Bot welcome message found');
+            hasWelcomeMessageFromBot = true;
+            return;
+          }
+        });
+        if (!hasWelcomeMessageFromBot) {
+          channel.send(validateEmailMessage);
+        }
+      });
+    }
+  });
+});
+
+client.on('guildMemberUpdate', async (_) => {
+  console.log('guildMemberUpdate');
 });
 
 client.on('guildMemberAdd', async (member) => {
@@ -53,16 +79,8 @@ export const getMemberInGuild = async (memberId: string) => {
   }
 }
 
-export const addRole = async (roleName: RoleName, member: Discord.GuildMember | string) => {
+export const addRole = async (roleName: RoleName, member: Discord.GuildMember) => {
   try {
-    if (typeof member === 'string') {
-      const memberGuild = await getMemberInGuild(member);
-      if (!memberGuild) {
-        console.error('Member guild not found');
-        return;
-      }
-      member = memberGuild;
-    }
     const roleId = config.roles[roleName];
     console.log('add roleId in member', member.id, member.displayName);
     const role = await member.guild?.roles?.fetch(roleId);
@@ -76,16 +94,8 @@ export const addRole = async (roleName: RoleName, member: Discord.GuildMember | 
   }
 }
 
-export const removeRole = async (roleName: RoleName, member: Discord.GuildMember | string) => {
+export const removeRole = async (roleName: RoleName, member: Discord.GuildMember) => {
   try {
-    if (typeof member === 'string') {
-      const memberGuild = await getMemberInGuild(member);
-      if (!memberGuild) {
-        console.error('Member guild not found', member);
-        return;
-      }
-      member = memberGuild;
-    }
     const roleId = new Config().roles[roleName];
     console.log('remove roleId in member', member.id, member.displayName);
     const role = await member.guild?.roles?.fetch(roleId);

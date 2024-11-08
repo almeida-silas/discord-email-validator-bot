@@ -1,7 +1,7 @@
 import axios from 'axios';
 import express, { Request, Response } from 'express';
 
-import { client, addRole, removeRole } from './bot';
+import { client, addRole, removeRole, getMemberInGuild } from './bot';
 import { Config } from './config';
 
 const app = express();
@@ -31,30 +31,34 @@ app.get('/auth', async (req: Request, res: Response) => {
         },
       });
       const userData = await userResponse.data;
-      console.log('userData', userData);
       const domain = userData.email.split('@')[1];
-
+      const member = await getMemberInGuild(userData.id);
+      if(!member) {
+        console.error('Member not found');
+        res.status(409).send();
+        return;
+      }
+      if (!config.emailDomainsAllowed.includes(domain)) {
+        member.kick('Email não permitido');
+        res.send("O email cadastrado não é permitido.");
+        return;
+      }
       if (!userData.verified) {
         console.log('Email não verificado', userData.email);
         res.send("Seu email não foi verificado. Verifique seu email e tente novamente.");
-        return
+        return;
       }
-      if (!config.emailDomainsAllowed.includes(domain)) {
-        res.send("O email cadastrado não é permitido.");
-        await removeRole('guest', userData.id);
-        return
-      }
-      await addRole('verified', userData.id);
-      await removeRole('guest', userData.id);
+      await addRole('verified', member);
+      await removeRole('guest', member);
+
       if (config.sendWelcomeMessage) {
         const channel = await client.channels.fetch(config.welcomeMessageChannelId)
         if (channel?.isSendable()) {
           console.log('send welcome message to %s in channel %s', userData.global_name, channel.id);
-          channel.send(`#vem-vindo @${userData.global_name}`);
+          channel.send(`${channel?.toString()} ${member?.toString()}`);
         }
       }
-
-      res.send(`
+      res.status(200).send(`
         <html>
           <body>
             <p>Seu email está de acordo com as políticas da empresa</p>
@@ -64,12 +68,12 @@ app.get('/auth', async (req: Request, res: Response) => {
           </body>
         </html>
       `);
-      return
+      return;
     } catch (e: any) {
       console.error('Erro:', e?.response);
+      res.status(500).send();
+      return;
     }
-    res.status(200).send();
-    return
   }
   res.status(400).send();
 });
