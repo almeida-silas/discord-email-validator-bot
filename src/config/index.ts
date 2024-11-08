@@ -12,6 +12,9 @@ export class Config {
   guildId = process.env.GUILD_ID!;
   emailDomainsAllowed = process.env.ALLOWED_DOMAINS?.split(',') || [];
   oauth2Link = `${this.oauth2Url}?client_id=${this.clientId}&redirect_uri=${this.redirectUri}&response_type=code&scope=identify%20email`;
+  waitingRoomChannelId = process.env.WAITING_ROOM_CHANNEL_ID!;
+  sendWelcomeMessage = process.env.SEND_WELCOME_MESSAGE === 'true';
+  welcomeMessageChannelId = process.env.WELCOME_CHANNEL_ID!;
 
   roles = { 
     'guest': this.guestRoleId,
@@ -20,8 +23,10 @@ export class Config {
 
   constructor() {
     if (!this.port || !this.baseUrl || !this.apiBaseUrl || !this.guestRoleId || !this.verifiedRoleId 
-      || !this.oauth2Url || !this.clientId || !this.clientSecret
-      || !this.redirectUri || !this.discordToken || !this.guildId || !this.emailDomainsAllowed.length) {
+      || !this.oauth2Url || !this.clientId || !this.clientSecret || !this.waitingRoomChannelId
+      || !this.redirectUri || !this.discordToken || !this.guildId || !this.emailDomainsAllowed.length
+      || (this.sendWelcomeMessage && !this.welcomeMessageChannelId)
+    ) {
       throw new Error('bad config');
     }
   }

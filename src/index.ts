@@ -35,25 +35,43 @@ app.get('/auth', async (req: Request, res: Response) => {
       const domain = userData.email.split('@')[1];
 
       if (!userData.verified) {
+        console.log('Email não verificado', userData.email);
         res.send("Seu email não foi verificado. Verifique seu email e tente novamente.");
         return
       }
       if (!config.emailDomainsAllowed.includes(domain)) {
         res.send("O email cadastrado não é permitido.");
+        await removeRole('guest', userData.id);
         return
       }
       await addRole('verified', userData.id);
       await removeRole('guest', userData.id);
+      if (config.sendWelcomeMessage) {
+        const channel = await client.channels.fetch(config.welcomeMessageChannelId)
+        if (channel?.isSendable()) {
+          console.log('send welcome message to %s in channel %s', userData.global_name, channel.id);
+          channel.send(`#vem-vindo @${userData.global_name}`);
+        }
+      }
 
-      res.send("Seu email está de acordo com as políticas da empresa");
+      res.send(`
+        <html>
+          <body>
+            <p>Seu email está de acordo com as políticas da empresa</p>
+            <script>
+              window.close();
+            </script>
+          </body>
+        </html>
+      `);
       return
-    } catch (e) {
+    } catch (e: any) {
       console.error('Erro:', e?.response);
     }
-    res.status(200);
+    res.status(200).send();
     return
   }
-  res.status(400);
+  res.status(400).send();
 });
 
 app.listen(config.port, async () => {

@@ -24,12 +24,15 @@ client.on('messageCreate', async (message) => {
   if (message.content === '&ping') {
     message.reply('Pong!');
   }
-  if (message.content === '&validar') {
-    message.reply('Para validar seu email, clique no link: ' + config.oauth2Link);
+  if(message.channelId === config.waitingRoomChannelId) {
+    if (message.content === '&validar') {
+      message.reply('Para validar seu email, clique no link: ' + config.oauth2Link);
+    }
   }
 });
 
-client.on("ready", async () => {});
+client.on("ready", async (c) => {
+});
 
 client.on('guildMemberAdd', async (member) => {
   await addRole('guest', member);
@@ -43,7 +46,7 @@ export const getMemberInGuild = async (memberId: string) => {
     }
     const guild = await client.guilds.fetch(config.guildId);
     const member = await guild.members.fetch(memberId);
-    console.log('member', member);
+    console.log('member', member.id, member.displayName);
     return member;
   } catch (e) {
     console.error('Error getting member in guild', e);
@@ -61,7 +64,7 @@ export const addRole = async (roleName: RoleName, member: Discord.GuildMember | 
       member = memberGuild;
     }
     const roleId = config.roles[roleName];
-    console.log('add roleId in member', member);
+    console.log('add roleId in member', member.id, member.displayName);
     const role = await member.guild?.roles?.fetch(roleId);
     if (!role) {
       console.error('Role not found');
@@ -78,13 +81,13 @@ export const removeRole = async (roleName: RoleName, member: Discord.GuildMember
     if (typeof member === 'string') {
       const memberGuild = await getMemberInGuild(member);
       if (!memberGuild) {
-        console.error('Member guild not found');
+        console.error('Member guild not found', member);
         return;
       }
       member = memberGuild;
     }
     const roleId = new Config().roles[roleName];
-    console.log('remove roleId in member', member);
+    console.log('remove roleId in member', member.id, member.displayName);
     const role = await member.guild?.roles?.fetch(roleId);
     if (!role) {
       console.error('Role not found');
