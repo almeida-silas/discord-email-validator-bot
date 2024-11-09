@@ -1,11 +1,12 @@
 import axios from 'axios';
 import express, { Request, Response } from 'express';
 
-import { client, addRole, removeRole, getMemberInGuild } from './bot';
+import {Bot} from './bot';
 import { Config } from './config';
 
 const app = express();
 const config = new Config();
+const bot = new Bot();
 
 const axiosInstance = axios.create({ baseURL: config.apiBaseUrl });
 
@@ -32,7 +33,7 @@ app.get('/auth', async (req: Request, res: Response) => {
       });
       const userData = await userResponse.data;
       const domain = userData.email.split('@')[1];
-      const member = await getMemberInGuild(userData.id);
+      const member = await bot.getMemberInGuild(userData.id);
       if(!member) {
         console.error('Member not found');
         res.status(409).send();
@@ -48,11 +49,11 @@ app.get('/auth', async (req: Request, res: Response) => {
         res.send("Seu email não foi verificado. Verifique seu email e tente novamente.");
         return;
       }
-      await addRole('verified', member);
-      await removeRole('guest', member);
+      await bot.addRole('verified', member);
+      await bot.removeRole('guest', member);
 
       if (config.sendWelcomeMessage) {
-        const channel = await client.channels.fetch(config.welcomeMessageChannelId)
+        const channel = await bot.getChannelById(config.welcomeMessageChannelId)
         if (channel?.isSendable()) {
           console.log('send welcome message to %s in channel %s', userData.global_name, channel.id);
           channel.send(`${channel?.toString()} ${member?.toString()}`);
@@ -79,6 +80,6 @@ app.get('/auth', async (req: Request, res: Response) => {
 });
 
 app.listen(config.port, async () => {
+  bot.init();
   console.log('Server is running on port', config.port);
-  client.login(config.discordToken);
 });
