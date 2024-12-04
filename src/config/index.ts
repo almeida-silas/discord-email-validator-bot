@@ -19,6 +19,8 @@ export class Config {
   checkPendingMembersInterval = Number(
     process.env.CHECK_PENDING_MEMBERS_INTERVAL || 1000 * 60 * 60
   );
+  ngrok = process.env.NGROK_AUTHTOKEN ? true : false;
+  ngrokDomain = process.env.NGROK_DOMAIN;
 
   roles = {
     guest: this.guestRoleId,
@@ -40,7 +42,8 @@ export class Config {
       !this.discordToken ||
       !this.guildId ||
       !this.emailDomainsAllowed.length ||
-      (this.sendWelcomeMessage && !this.welcomeMessageChannelId)
+      (this.sendWelcomeMessage && !this.welcomeMessageChannelId) ||
+      (this.ngrok && !this.ngrokDomain)
     ) {
       throw new Error("bad config");
     }

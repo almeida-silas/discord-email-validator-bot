@@ -1,11 +1,11 @@
-FROM node:iron-alpine3.20 AS appbuild
+FROM node:jod-alpine3.20 AS appbuild
 WORKDIR /usr/app/
 
 COPY . .
 RUN node -v
 RUN npm i && npm run build
 
-FROM node:iron-alpine3.20
+FROM node:jod-alpine3.20
 WORKDIR /usr/app/
 
 COPY package.json package-lock.json tsconfig.json ./

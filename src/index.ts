@@ -1,7 +1,8 @@
 import axios from 'axios';
+import ngrok from '@ngrok/ngrok';
 import express, { Request, Response } from 'express';
 
-import {Bot} from './bot';
+import { Bot } from './bot';
 import { Config } from './config';
 
 const app = express();
@@ -81,5 +82,14 @@ app.get('/auth', async (req: Request, res: Response) => {
 
 app.listen(config.port, async () => {
   bot.init();
+
+  if (config.ngrok) {
+    const response = await ngrok.connect({ 
+      addr: config.port,
+      domain: config.ngrokDomain,
+      authtoken_from_env: true,
+    });
+    console.log('Ngrok is running', response.url());
+  }
   console.log('Server is running on port', config.port);
 });
